@@ -57,7 +57,7 @@ class KeycloakAccessToken
      *
      * @return string
      */
-    public function getAccessToken()
+    public function getAccessToken(): string
     {
         return $this->accessToken;
     }
@@ -67,7 +67,7 @@ class KeycloakAccessToken
      *
      * @return string
      */
-    public function getRefreshToken()
+    public function getRefreshToken(): string
     {
         return $this->refreshToken;
     }
@@ -75,9 +75,9 @@ class KeycloakAccessToken
     /**
      * Get IdToken
      *
-     * @return string
+     * @return string|null
      */
-    public function getIdToken()
+    public function getIdToken(): ?string
     {
         return $this->idToken;
     }
@@ -85,9 +85,9 @@ class KeycloakAccessToken
     /**
      * Check access token has expired
      *
-     * @return boolean
+     * @return bool
      */
-    public function hasExpired()
+    public function hasExpired(): bool
     {
         $exp = $this->parseAccessToken();
         $exp = $exp['exp'] ?? '';
@@ -101,7 +101,7 @@ class KeycloakAccessToken
      * @throws Exception
      * @return void
      */
-    public function validateIdToken($claims)
+    public function validateIdToken($claims): void
     {
         $token = $this->parseIdToken();
         if (empty($token)) {
@@ -145,9 +145,9 @@ class KeycloakAccessToken
     /**
      * Validate sub from ID token
      *
-     * @return boolean
+     * @return bool
      */
-    public function validateSub($userSub)
+    public function validateSub($userSub): bool
     {
         $sub = $this->parseIdToken();
         $sub = $sub['sub'] ?? '';
@@ -160,7 +160,7 @@ class KeycloakAccessToken
      *
      * @return array
      */
-    public function parseAccessToken()
+    public function parseAccessToken(): array
     {
         return $this->parseToken($this->accessToken);
     }
@@ -170,7 +170,7 @@ class KeycloakAccessToken
      *
      * @return array
      */
-    public function parseIdToken()
+    public function parseIdToken(): array
     {
         return $this->parseToken($this->idToken);
     }
@@ -178,10 +178,10 @@ class KeycloakAccessToken
     /**
      * Get token (access/refresh/id) data
      *
-     * @param string $token
+     * @param string|null $token
      * @return array
      */
-    protected function parseToken($token)
+    protected function parseToken(?string $token): array
     {
         if (! is_string($token)) {
             return [];
@@ -201,7 +201,7 @@ class KeycloakAccessToken
      * @param  string $data
      * @return string
      */
-    protected function base64UrlDecode($data)
+    protected function base64UrlDecode(string $data): string
     {
         return base64_decode(str_pad(strtr($data, '-_', '+/'), strlen($data) % 4, '=', STR_PAD_RIGHT));
     }

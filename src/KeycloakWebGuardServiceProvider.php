@@ -11,28 +11,26 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Vizir\KeycloakWebGuard\Auth\Guard\KeycloakWebGuard;
 use Vizir\KeycloakWebGuard\Auth\KeycloakWebUserProvider;
+use Vizir\KeycloakWebGuard\Controllers\AuthController;
 use Vizir\KeycloakWebGuard\Middleware\KeycloakAuthenticated;
 use Vizir\KeycloakWebGuard\Middleware\KeycloakCan;
-use Vizir\KeycloakWebGuard\Models\KeycloakUser;
 use Vizir\KeycloakWebGuard\Services\KeycloakService;
 
 class KeycloakWebGuardServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap services.
-     *
-     * @return void
      */
-    public function boot()
+    public function boot(): void
     {
         // Configuration
-        $config = __DIR__ . '/../config/keycloak-web.php';
+        $config = __DIR__.'/../config/keycloak-web.php';
 
         $this->publishes([$config => config_path('keycloak-web.php')], 'config');
         $this->mergeConfigFrom($config, 'keycloak-web');
 
         // User Provider
-        Auth::provider('keycloak-users', function($app, array $config) {
+        Auth::provider('keycloak-users', function ($app, array $config) {
             return new KeycloakWebUserProvider($config['model']);
         });
 
@@ -44,19 +42,18 @@ class KeycloakWebGuardServiceProvider extends ServiceProvider
 
     /**
      * Register services.
-     *
-     * @return void
      */
     public function register()
     {
         // Keycloak Web Guard
         Auth::extend('keycloak-web', function ($app, $name, array $config) {
             $provider = Auth::createUserProvider($config['provider']);
+
             return new KeycloakWebGuard($provider, $app->request);
         });
 
         // Facades
-        $this->app->bind('keycloak-web', function($app) {
+        $this->app->bind('keycloak-web', function ($app) {
             return $app->make(KeycloakService::class);
         });
 
@@ -73,15 +70,13 @@ class KeycloakWebGuardServiceProvider extends ServiceProvider
         $this->app['router']->aliasMiddleware('keycloak-web-can', KeycloakCan::class);
 
         // Bind for client data
-        $this->app->when(KeycloakService::class)->needs(ClientInterface::class)->give(function() {
+        $this->app->when(KeycloakService::class)->needs(ClientInterface::class)->give(function () {
             return new Client(Config::get('keycloak-web.guzzle_options', []));
         });
     }
 
     /**
      * Register the authentication routes for keycloak.
-     *
-     * @return void
      */
     private function registerRoutes()
     {
@@ -98,20 +93,20 @@ class KeycloakWebGuardServiceProvider extends ServiceProvider
         // Register Routes
         $router = $this->app->make('router');
 
-        if (! empty($routes['login'])) {
-            $router->middleware('web')->get($routes['login'], 'Vizir\KeycloakWebGuard\Controllers\AuthController@login')->name('keycloak.login');
+        if (!empty($routes['login'])) {
+            $router->middleware('web')->get($routes['login'], [AuthController::class, 'login'])->name('keycloak.login');
         }
 
-        if (! empty($routes['logout'])) {
-            $router->middleware('web')->get($routes['logout'], 'Vizir\KeycloakWebGuard\Controllers\AuthController@logout')->name('keycloak.logout');
+        if (!empty($routes['logout'])) {
+            $router->middleware('web')->get($routes['logout'], [AuthController::class, 'logout'])->name('keycloak.logout');
         }
 
-        if (! empty($routes['register'])) {
-            $router->middleware('web')->get($routes['register'], 'Vizir\KeycloakWebGuard\Controllers\AuthController@register')->name('keycloak.register');
+        if (!empty($routes['register'])) {
+            $router->middleware('web')->get($routes['register'], [AuthController::class, 'register'])->name('keycloak.register');
         }
 
-        if (! empty($routes['callback'])) {
-            $router->middleware('web')->get($routes['callback'], 'Vizir\KeycloakWebGuard\Controllers\AuthController@callback')->name('keycloak.callback');
+        if (!empty($routes['callback'])) {
+            $router->middleware('web')->get($routes['callback'], [AuthController::class, 'callback'])->name('keycloak.callback');
         }
     }
 }

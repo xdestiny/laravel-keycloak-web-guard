@@ -6,90 +6,88 @@ use Exception;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
 use Vizir\KeycloakWebGuard\Auth\KeycloakAccessToken;
-use Vizir\KeycloakWebGuard\Auth\Guard\KeycloakWebGuard;
 
 class KeycloakService
 {
     /**
-     * The Session key for token
+     * The Session key for token.
      */
-    const KEYCLOAK_SESSION = '_keycloak_token';
+    public const KEYCLOAK_SESSION = '_keycloak_token';
 
     /**
-     * The Session key for state
+     * The Session key for state.
      */
-    const KEYCLOAK_SESSION_STATE = '_keycloak_state';
+    public const KEYCLOAK_SESSION_STATE = '_keycloak_state';
 
     /**
-     * Keycloak URL
+     * Keycloak URL.
      *
      * @var string
      */
     protected $baseUrl;
 
     /**
-     * Keycloak Realm
+     * Keycloak Realm.
      *
      * @var string
      */
     protected $realm;
 
     /**
-     * Keycloak Client ID
+     * Keycloak Client ID.
      *
      * @var string
      */
     protected $clientId;
 
     /**
-     * Keycloak Client Secret
+     * Keycloak Client Secret.
      *
      * @var string
      */
     protected $clientSecret;
 
     /**
-     * Keycloak OpenId Configuration
+     * Keycloak OpenId Configuration.
      *
      * @var array
      */
     protected $openid;
 
     /**
-     * Keycloak OpenId Cache Configuration
+     * Keycloak OpenId Cache Configuration.
      *
      * @var array
      */
     protected $cacheOpenid;
 
     /**
-     * CallbackUrl
+     * CallbackUrl.
      *
      * @var array
      */
     protected $callbackUrl;
 
     /**
-     * RedirectLogout
+     * RedirectLogout.
      *
      * @var array
      */
     protected $redirectLogout;
 
     /**
-     * The state for authorization request
+     * The state for authorization request.
      *
      * @var string
      */
     protected $state;
 
     /**
-     * The HTTP Client
+     * The HTTP Client.
      *
      * @var ClientInterface
      */
@@ -99,9 +97,6 @@ class KeycloakService
      * The Constructor
      * You can extend this service setting protected variables before call
      * parent constructor to comunicate with Keycloak smoothly.
-     *
-     * @param ClientInterface $client
-     * @return void
      */
     public function __construct(ClientInterface $client)
     {
@@ -138,13 +133,11 @@ class KeycloakService
     }
 
     /**
-     * Return the login URL
+     * Return the login URL.
      *
-     * @link https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
-     *
-     * @return string
+     * @see https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
      */
-    public function getLoginUrl()
+    public function getLoginUrl(): string
     {
         $url = $this->getOpenIdValue('authorization_endpoint');
         $params = [
@@ -159,11 +152,9 @@ class KeycloakService
     }
 
     /**
-     * Return the logout URL
-     *
-     * @return string
+     * Return the logout URL.
      */
-    public function getLogoutUrl()
+    public function getLogoutUrl(): string
     {
         $url = $this->getOpenIdValue('end_session_endpoint');
 
@@ -180,24 +171,21 @@ class KeycloakService
     }
 
     /**
-     * Return the register URL
+     * Return the register URL.
      *
-     * @link https://stackoverflow.com/questions/51514437/keycloak-direct-user-link-registration
-     *
-     * @return string
+     * @see https://stackoverflow.com/questions/51514437/keycloak-direct-user-link-registration
      */
-    public function getRegisterUrl()
+    public function getRegisterUrl(): string
     {
         $url = $this->getLoginUrl();
+
         return str_replace('/auth?', '/registrations?', $url);
     }
+
     /**
-     * Get access token from Code
-     *
-     * @param  string $code
-     * @return array
+     * Get access token from Code.
      */
-    public function getAccessToken($code)
+    public function getAccessToken(string $code): array
     {
         $url = $this->getOpenIdValue('token_endpoint');
         $params = [
@@ -207,7 +195,7 @@ class KeycloakService
             'redirect_uri' => $this->callbackUrl,
         ];
 
-        if (! empty($this->clientSecret)) {
+        if (!empty($this->clientSecret)) {
             $params['client_secret'] = $this->clientSecret;
         }
 
@@ -216,7 +204,7 @@ class KeycloakService
         try {
             $response = $this->httpClient->request('POST', $url, ['form_params' => $params]);
 
-            if ($response->getStatusCode() === 200) {
+            if (200 === $response->getStatusCode()) {
                 $token = $response->getBody()->getContents();
                 $token = json_decode($token, true);
             }
@@ -228,12 +216,11 @@ class KeycloakService
     }
 
     /**
-     * Refresh access token
+     * Refresh access token.
      *
-     * @param  string $refreshToken
-     * @return array
+     * @param mixed $credentials
      */
-    public function refreshAccessToken($credentials)
+    public function refreshAccessToken($credentials): array
     {
         if (empty($credentials['refresh_token'])) {
             return [];
@@ -247,7 +234,7 @@ class KeycloakService
             'redirect_uri' => $this->callbackUrl,
         ];
 
-        if (! empty($this->clientSecret)) {
+        if (!empty($this->clientSecret)) {
             $params['client_secret'] = $this->clientSecret;
         }
 
@@ -256,7 +243,7 @@ class KeycloakService
         try {
             $response = $this->httpClient->request('POST', $url, ['form_params' => $params]);
 
-            if ($response->getStatusCode() === 200) {
+            if (200 === $response->getStatusCode()) {
                 $token = $response->getBody()->getContents();
                 $token = json_decode($token, true);
             }
@@ -268,12 +255,9 @@ class KeycloakService
     }
 
     /**
-     * Invalidate Refresh
-     *
-     * @param  string $refreshToken
-     * @return array
+     * Invalidate Refresh.
      */
-    public function invalidateRefreshToken($refreshToken)
+    public function invalidateRefreshToken(string $refreshToken): bool
     {
         $url = $this->getOpenIdValue('end_session_endpoint');
         $params = [
@@ -281,13 +265,14 @@ class KeycloakService
             'refresh_token' => $refreshToken,
         ];
 
-        if (! empty($this->clientSecret)) {
+        if (!empty($this->clientSecret)) {
             $params['client_secret'] = $this->clientSecret;
         }
 
         try {
             $response = $this->httpClient->request('POST', $url, ['form_params' => $params]);
-            return $response->getStatusCode() === 204;
+
+            return 204 === $response->getStatusCode();
         } catch (GuzzleException $e) {
             $this->logException($e);
         }
@@ -296,15 +281,14 @@ class KeycloakService
     }
 
     /**
-     * Get access token from Code
-     * @param  array $credentials
-     * @return array
+     * Get access token from Code.
      */
-    public function getUserProfile($credentials)
+    public function getUserProfile(array $credentials): array
     {
         $credentials = $this->refreshTokenIfNeeded($credentials);
 
         $user = [];
+
         try {
             // Validate JWT Token
             $token = new KeycloakAccessToken($credentials);
@@ -313,23 +297,23 @@ class KeycloakService
                 throw new Exception('Access Token is invalid.');
             }
 
-            $claims = array(
+            $claims = [
                 'aud' => $this->getClientId(),
                 'iss' => $this->getOpenIdValue('issuer'),
-            );
+            ];
 
             $token->validateIdToken($claims);
 
             // Get userinfo
             $url = $this->getOpenIdValue('userinfo_endpoint');
             $headers = [
-                'Authorization' => 'Bearer ' . $token->getAccessToken(),
+                'Authorization' => 'Bearer '.$token->getAccessToken(),
                 'Accept' => 'application/json',
             ];
 
             $response = $this->httpClient->request('GET', $url, ['headers' => $headers]);
 
-            if ($response->getStatusCode() !== 200) {
+            if (200 !== $response->getStatusCode()) {
                 throw new Exception('Was not able to get userinfo (not 200)');
             }
 
@@ -341,26 +325,24 @@ class KeycloakService
         } catch (GuzzleException $e) {
             $this->logException($e);
         } catch (Exception $e) {
-            Log::error('[Keycloak Service] ' . print_r($e->getMessage(), true));
+            Log::error('[Keycloak Service] '.print_r($e->getMessage(), true));
         }
 
         return $user;
     }
 
     /**
-     * Retrieve Token from Session
-     *
-     * @return array|null
+     * Retrieve Token from Session.
      */
-    public function retrieveToken()
+    public function retrieveToken(): ?array
     {
         return session()->get(self::KEYCLOAK_SESSION);
     }
 
     /**
-     * Save Token to Session
+     * Save Token to Session.
      *
-     * @return void
+     * @param mixed $credentials
      */
     public function saveToken($credentials)
     {
@@ -369,9 +351,7 @@ class KeycloakService
     }
 
     /**
-     * Remove Token from Session
-     *
-     * @return void
+     * Remove Token from Session.
      */
     public function forgetToken()
     {
@@ -380,20 +360,19 @@ class KeycloakService
     }
 
     /**
-     * Validate State from Session
+     * Validate State from Session.
      *
-     * @return void
+     * @param mixed $state
      */
-    public function validateState($state)
+    public function validateState($state): bool
     {
         $challenge = session()->get(self::KEYCLOAK_SESSION_STATE);
-        return (! empty($state) && ! empty($challenge) && $challenge === $state);
+
+        return !empty($state) && !empty($challenge) && $challenge === $state;
     }
 
     /**
-     * Save State to Session
-     *
-     * @return void
+     * Save State to Session.
      */
     public function saveState()
     {
@@ -402,9 +381,7 @@ class KeycloakService
     }
 
     /**
-     * Remove State from Session
-     *
-     * @return void
+     * Remove State from Session.
      */
     public function forgetState()
     {
@@ -413,30 +390,26 @@ class KeycloakService
     }
 
     /**
-     * Build a URL with params
-     *
-     * @param  string $url
-     * @param  array $params
-     * @return string
+     * Build a URL with params.
      */
-    public function buildUrl($url, $params)
+    public function buildUrl(string $url, array $params): string
     {
         $parsedUrl = parse_url($url);
         if (empty($parsedUrl['host'])) {
-            return trim($url, '?') . '?' . Arr::query($params);
+            return trim($url, '?').'?'.Arr::query($params);
         }
 
-        if (! empty($parsedUrl['port'])) {
-            $parsedUrl['host'] .= ':' . $parsedUrl['port'];
+        if (!empty($parsedUrl['port'])) {
+            $parsedUrl['host'] .= ':'.$parsedUrl['port'];
         }
 
         $parsedUrl['scheme'] = (empty($parsedUrl['scheme'])) ? 'https' : $parsedUrl['scheme'];
         $parsedUrl['path'] = (empty($parsedUrl['path'])) ? '' : $parsedUrl['path'];
 
-        $url = $parsedUrl['scheme'] . '://' . $parsedUrl['host'] . $parsedUrl['path'];
+        $url = $parsedUrl['scheme'].'://'.$parsedUrl['host'].$parsedUrl['path'];
         $query = [];
 
-        if (! empty($parsedUrl['query'])) {
+        if (!empty($parsedUrl['query'])) {
             $parsedUrl['query'] = explode('&', $parsedUrl['query']);
 
             foreach ($parsedUrl['query'] as $value) {
@@ -455,38 +428,31 @@ class KeycloakService
 
         $query = array_merge($query, $params);
 
-        return $url . '?' . Arr::query($query);
+        return $url.'?'.Arr::query($query);
     }
 
     /**
-     * Return the client id for requests
-     *
-     * @return string
+     * Return the client id for requests.
      */
-    protected function getClientId()
+    protected function getClientId(): string
     {
         return $this->clientId;
     }
 
     /**
-     * Return the state for requests
-     *
-     * @return string
+     * Return the state for requests.
      */
-    protected function getState()
+    protected function getState(): string
     {
         return $this->state;
     }
 
     /**
-     * Return a value from the Open ID Configuration
-     *
-     * @param  string $key
-     * @return string
+     * Return a value from the Open ID Configuration.
      */
-    protected function getOpenIdValue($key)
+    protected function getOpenIdValue(string $key): string
     {
-        if (! $this->openid) {
+        if (!$this->openid) {
             $this->openid = $this->getOpenIdConfiguration();
         }
 
@@ -494,40 +460,38 @@ class KeycloakService
     }
 
     /**
-     * Retrieve OpenId Endpoints
-     *
-     * @return array
+     * Retrieve OpenId Endpoints.
      */
-    protected function getOpenIdConfiguration()
+    protected function getOpenIdConfiguration(): array
     {
-        $cacheKey = 'keycloak_web_guard_openid-' . $this->realm . '-' . md5($this->baseUrl);
+        $cacheKey = 'keycloak_web_guard_openid-'.$this->realm.'-'.md5($this->baseUrl);
 
         // From cache?
         if ($this->cacheOpenid) {
             $configuration = Cache::get($cacheKey, []);
 
-            if (! empty($configuration)) {
+            if (!empty($configuration)) {
                 return $configuration;
             }
         }
 
         // Request if cache empty or not using
-        $url = $this->baseUrl . '/realms/' . $this->realm;
-        $url = $url . '/.well-known/openid-configuration';
+        $url = $this->baseUrl.'/realms/'.$this->realm;
+        $url = $url.'/.well-known/openid-configuration';
 
         $configuration = [];
 
         try {
             $response = $this->httpClient->request('GET', $url);
 
-            if ($response->getStatusCode() === 200) {
+            if (200 === $response->getStatusCode()) {
                 $configuration = $response->getBody()->getContents();
                 $configuration = json_decode($configuration, true);
             }
         } catch (GuzzleException $e) {
             $this->logException($e);
 
-            throw new Exception('[Keycloak Error] It was not possible to load OpenId configuration: ' . $e->getMessage());
+            throw new Exception('[Keycloak Error] It was not possible to load OpenId configuration: '.$e->getMessage());
         }
 
         // Save cache
@@ -539,19 +503,16 @@ class KeycloakService
     }
 
     /**
-     * Check we need to refresh token and refresh if needed
-     *
-     * @param  array $credentials
-     * @return array
+     * Check we need to refresh token and refresh if needed.
      */
-    protected function refreshTokenIfNeeded($credentials)
+    protected function refreshTokenIfNeeded(array $credentials): array
     {
-        if (! is_array($credentials) || empty($credentials['access_token']) || empty($credentials['refresh_token'])) {
+        if (!is_array($credentials) || empty($credentials['access_token']) || empty($credentials['refresh_token'])) {
             return $credentials;
         }
 
         $token = new KeycloakAccessToken($credentials);
-        if (! $token->hasExpired()) {
+        if (!$token->hasExpired()) {
             return $credentials;
         }
 
@@ -559,24 +520,24 @@ class KeycloakService
 
         if (empty($credentials['access_token'])) {
             $this->forgetToken();
+
             return [];
         }
 
         $this->saveToken($credentials);
+
         return $credentials;
     }
 
     /**
-     * Log a GuzzleException
-     *
-     * @param  GuzzleException $e
-     * @return void
+     * Log a GuzzleException.
      */
     protected function logException(GuzzleException $e)
     {
         // Guzzle 7
-        if (! method_exists($e, 'getResponse') || empty($e->getResponse())) {
-            Log::error('[Keycloak Service] ' . $e->getMessage());
+        if (!method_exists($e, 'getResponse') || empty($e->getResponse())) {
+            Log::error('[Keycloak Service] '.$e->getMessage());
+
             return;
         }
 
@@ -585,15 +546,13 @@ class KeycloakService
             'response' => $e->getResponse()->getBody()->getContents(),
         ];
 
-        Log::error('[Keycloak Service] ' . print_r($error, true));
+        Log::error('[Keycloak Service] '.print_r($error, true));
     }
 
     /**
-     * Return a random state parameter for authorization
-     *
-     * @return string
+     * Return a random state parameter for authorization.
      */
-    protected function generateRandomState()
+    protected function generateRandomState(): string
     {
         return bin2hex(random_bytes(16));
     }

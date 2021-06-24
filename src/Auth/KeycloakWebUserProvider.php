@@ -4,7 +4,6 @@ namespace Vizir\KeycloakWebGuard\Auth;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
-use Vizir\KeycloakWebGuard\Models\KeycloakUser;
 
 class KeycloakWebUserProvider implements UserProvider
 {
@@ -16,22 +15,17 @@ class KeycloakWebUserProvider implements UserProvider
     protected $model;
 
     /**
-     * The Constructor
-     *
-     * @param string $model
+     * The Constructor.
      */
-    public function __construct($model)
+    public function __construct(string $model)
     {
         $this->model = $model;
     }
 
     /**
      * Retrieve a user by the given credentials.
-     *
-     * @param  array  $credentials
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
      */
-    public function retrieveByCredentials(array $credentials)
+    public function retrieveByCredentials(array $credentials): ?Authenticatable
     {
         $class = '\\'.ltrim($this->model, '\\');
 
@@ -41,10 +35,9 @@ class KeycloakWebUserProvider implements UserProvider
     /**
      * Retrieve a user by their unique identifier.
      *
-     * @param  mixed  $identifier
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
+     * @param mixed $identifier
      */
-    public function retrieveById($identifier)
+    public function retrieveById($identifier): ?Authenticatable
     {
         throw new \BadMethodCallException('Unexpected method [retrieveById] call');
     }
@@ -52,11 +45,10 @@ class KeycloakWebUserProvider implements UserProvider
     /**
      * Retrieve a user by their unique identifier and "remember me" token.
      *
-     * @param  mixed  $identifier
-     * @param  string  $token
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
+     * @param mixed  $identifier
+     * @param string $token
      */
-    public function retrieveByToken($identifier, $token)
+    public function retrieveByToken($identifier, $token): ?Authenticatable
     {
         throw new \BadMethodCallException('Unexpected method [retrieveByToken] call');
     }
@@ -64,9 +56,7 @@ class KeycloakWebUserProvider implements UserProvider
     /**
      * Update the "remember me" token for the given user in storage.
      *
-     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-     * @param  string  $token
-     * @return void
+     * @param string $token
      */
     public function updateRememberToken(Authenticatable $user, $token)
     {
@@ -75,12 +65,8 @@ class KeycloakWebUserProvider implements UserProvider
 
     /**
      * Validate a user against the given credentials.
-     *
-     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-     * @param  array  $credentials
-     * @return bool
      */
-    public function validateCredentials(Authenticatable $user, array $credentials)
+    public function validateCredentials(Authenticatable $user, array $credentials): bool
     {
         throw new \BadMethodCallException('Unexpected method [validateCredentials] call');
     }

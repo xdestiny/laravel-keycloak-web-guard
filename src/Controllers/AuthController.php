@@ -2,8 +2,10 @@
 
 namespace Vizir\KeycloakWebGuard\Controllers;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Auth;
 use Vizir\KeycloakWebGuard\Exceptions\KeycloakCallbackException;
 use Vizir\KeycloakWebGuard\Facades\KeycloakWeb;
@@ -11,9 +13,9 @@ use Vizir\KeycloakWebGuard\Facades\KeycloakWeb;
 class AuthController extends Controller
 {
     /**
-     * Redirect to login
+     * Redirect to login.
      *
-     * @return view
+     * @return Redirector|RedirectResponse
      */
     public function login()
     {
@@ -24,40 +26,42 @@ class AuthController extends Controller
     }
 
     /**
-     * Redirect to logout
+     * Redirect to logout.
      *
-     * @return view
+     * @return Redirector|RedirectResponse
      */
     public function logout()
     {
         KeycloakWeb::forgetToken();
 
         $url = KeycloakWeb::getLogoutUrl();
+
         return redirect($url);
     }
 
     /**
-     * Redirect to register
+     * Redirect to register.
      *
-     * @return view
+     * @return Redirector|RedirectResponse
      */
     public function register()
     {
         $url = KeycloakWeb::getRegisterUrl();
+
         return redirect($url);
     }
 
     /**
-     * Keycloak callback page
+     * Keycloak callback page.
      *
      * @throws KeycloakCallbackException
      *
-     * @return view
+     * @return Redirector|RedirectResponse
      */
     public function callback(Request $request)
     {
         // Check for errors from Keycloak
-        if (! empty($request->input('error'))) {
+        if (!empty($request->input('error'))) {
             $error = $request->input('error_description');
             $error = ($error) ?: $request->input('error');
 
@@ -66,7 +70,7 @@ class AuthController extends Controller
 
         // Check given state to mitigate CSRF attack
         $state = $request->input('state');
-        if (empty($state) || ! KeycloakWeb::validateState($state)) {
+        if (empty($state) || !KeycloakWeb::validateState($state)) {
             KeycloakWeb::forgetState();
 
             throw new KeycloakCallbackException('Invalid state');
@@ -74,11 +78,12 @@ class AuthController extends Controller
 
         // Change code for token
         $code = $request->input('code');
-        if (! empty($code)) {
+        if (!empty($code)) {
             $token = KeycloakWeb::getAccessToken($code);
 
             if (Auth::validate($token)) {
                 $url = config('keycloak-web.redirect_url', '/admin');
+
                 return redirect()->intended($url);
             }
         }

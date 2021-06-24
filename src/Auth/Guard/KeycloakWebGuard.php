@@ -4,13 +4,13 @@ namespace Vizir\KeycloakWebGuard\Auth\Guard;
 
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Support\Facades\Config;
 use Vizir\KeycloakWebGuard\Auth\KeycloakAccessToken;
 use Vizir\KeycloakWebGuard\Exceptions\KeycloakCallbackException;
-use Vizir\KeycloakWebGuard\Models\KeycloakUser;
 use Vizir\KeycloakWebGuard\Facades\KeycloakWeb;
-use Illuminate\Contracts\Auth\UserProvider;
+use Vizir\KeycloakWebGuard\Models\KeycloakUser;
+
 class KeycloakWebGuard implements Guard
 {
     /**
@@ -19,42 +19,38 @@ class KeycloakWebGuard implements Guard
     protected $user;
 
     /**
-     * Constructor.
-     *
-     * @param Request $request
+     * @var UserProvider
      */
-    public function __construct(UserProvider $provider, Request $request)
+    protected $provider;
+
+    /**
+     * Constructor.
+     */
+    public function __construct(UserProvider $provider)
     {
         $this->provider = $provider;
-        $this->request = $request;
     }
 
     /**
      * Determine if the current user is authenticated.
-     *
-     * @return bool
      */
-    public function check()
+    public function check(): bool
     {
         return (bool) $this->user();
     }
 
     /**
      * Determine if the current user is a guest.
-     *
-     * @return bool
      */
-    public function guest()
+    public function guest(): bool
     {
-        return ! $this->check();
+        return !$this->check();
     }
 
     /**
      * Get the currently authenticated user.
-     *
-     * @return \Illuminate\Contracts\Auth\Authenticatable|null
      */
-    public function user()
+    public function user(): ?Authenticatable
     {
         if (empty($this->user)) {
             $this->authenticate();
@@ -66,10 +62,9 @@ class KeycloakWebGuard implements Guard
     /**
      * Set the current user.
      *
-     * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
-     * @return void
+     * @param Authenticatable $user
      */
-    public function setUser(?Authenticatable $user)
+    public function setUser(?Authenticatable $user): void
     {
         $this->user = $user;
     }
@@ -77,32 +72,27 @@ class KeycloakWebGuard implements Guard
     /**
      * Get the ID for the currently authenticated user.
      *
-     * @return int|string|null
+     * @return null|int|string
      */
     public function id()
     {
         $user = $this->user();
+
         return $user->id ?? null;
     }
 
     /**
      * Validate a user's credentials.
      *
-     * @param  array  $credentials
-     *
      * @throws BadMethodCallException
-     *
-     * @return bool
      */
-    public function validate(array $credentials = [])
+    public function validate(array $credentials = []): bool
     {
         if (empty($credentials['access_token']) || empty($credentials['id_token'])) {
             return false;
         }
 
-        /**
-         * Store the section
-         */
+        // Store the section
         $credentials['refresh_token'] = $credentials['refresh_token'] ?? '';
         KeycloakWeb::saveToken($credentials);
 
@@ -110,12 +100,11 @@ class KeycloakWebGuard implements Guard
     }
 
     /**
-     * Try to authenticate the user
+     * Try to authenticate the user.
      *
      * @throws KeycloakCallbackException
-     * @return boolean
      */
-    public function authenticate()
+    public function authenticate(): bool
     {
         // Get Credentials
         $credentials = KeycloakWeb::retrieveToken();
@@ -142,20 +131,18 @@ class KeycloakWebGuard implements Guard
     }
 
     /**
-     * Check user is authenticated and has a role
+     * Check user is authenticated and has a role.
      *
      * @param array|string $roles
-     * @param string $resource Default is empty: point to client_id
-     *
-     * @return boolean
+     * @param string       $resource Default is empty: point to client_id
      */
-    public function hasRole($roles, $resource = '')
+    public function hasRole($roles, string $resource = ''): bool
     {
         if (empty($resource)) {
             $resource = Config::get('keycloak-web.client_id');
         }
 
-        if (! $this->check()) {
+        if (!$this->check()) {
             return false;
         }
 
@@ -169,7 +156,7 @@ class KeycloakWebGuard implements Guard
         $token = $token->parseAccessToken();
 
         $resourceRoles = $token['resource_access'] ?? [];
-        $resourceRoles = $resourceRoles[ $resource ] ?? [];
+        $resourceRoles = $resourceRoles[$resource] ?? [];
         $resourceRoles = $resourceRoles['roles'] ?? [];
 
         return empty(array_diff((array) $roles, $resourceRoles));

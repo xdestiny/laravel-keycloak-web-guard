@@ -2,30 +2,30 @@
 
 namespace Vizir\KeycloakWebGuard\Models;
 
-use Auth;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\Auth;
 
 class KeycloakUser implements Authenticatable
 {
     /**
-     * Attributes we retrieve from Profile
+     * Attributes we retrieve from Profile.
      *
      * @var array
      */
     protected $fillable = [
         'name',
-        'email'
+        'email',
     ];
 
     /**
-     * User attributes
+     * User attributes.
      *
      * @var array
      */
     protected $attributes = [];
 
     /**
-     * Constructor
+     * Constructor.
      *
      * @param array $profile Keycloak user info
      */
@@ -33,7 +33,7 @@ class KeycloakUser implements Authenticatable
     {
         foreach ($profile as $key => $value) {
             if (in_array($key, $this->fillable)) {
-                $this->attributes[ $key ] = $value;
+                $this->attributes[$key] = $value;
             }
         }
 
@@ -41,14 +41,13 @@ class KeycloakUser implements Authenticatable
     }
 
     /**
-     * Magic method to get attributes
+     * Magic method to get attributes.
      *
-     * @param  string $name
      * @return mixed
      */
     public function __get(string $name)
     {
-        return $this->attributes[ $name ] ?? null;
+        return $this->attributes[$name] ?? null;
     }
 
     /**
@@ -63,10 +62,8 @@ class KeycloakUser implements Authenticatable
 
     /**
      * Get the name of the unique identifier for the user.
-     *
-     * @return string
      */
-    public function getAuthIdentifierName()
+    public function getAuthIdentifierName(): string
     {
         return 'email';
     }
@@ -82,13 +79,14 @@ class KeycloakUser implements Authenticatable
     }
 
     /**
-     * Check user has roles
+     * Check user has roles.
      *
      * @see KeycloakWebGuard::hasRole()
      *
-     * @param  string|array  $roles
-     * @param  string  $resource
-     * @return boolean
+     * @param array|string $roles
+     * @param string       $resource
+     *
+     * @return bool
      */
     public function hasRole($roles, $resource = '')
     {
@@ -98,10 +96,9 @@ class KeycloakUser implements Authenticatable
     /**
      * Get the password for the user.
      *
-     * @return string
      * @codeCoverageIgnore
      */
-    public function getAuthPassword()
+    public function getAuthPassword(): string
     {
         throw new \BadMethodCallException('Unexpected method [getAuthPassword] call');
     }
@@ -109,10 +106,9 @@ class KeycloakUser implements Authenticatable
     /**
      * Get the token value for the "remember me" session.
      *
-     * @return string
      * @codeCoverageIgnore
      */
-    public function getRememberToken()
+    public function getRememberToken(): string
     {
         throw new \BadMethodCallException('Unexpected method [getRememberToken] call');
     }
@@ -131,10 +127,9 @@ class KeycloakUser implements Authenticatable
     /**
      * Get the column name for the "remember me" token.
      *
-     * @return string
      * @codeCoverageIgnore
      */
-    public function getRememberTokenName()
+    public function getRememberTokenName(): string
     {
         throw new \BadMethodCallException('Unexpected method [getRememberTokenName] call');
     }
